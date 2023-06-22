@@ -1,0 +1,43 @@
+version: '3.2'
+services:
+    php:
+        build:
+            context: ./lib/
+            dockerfile: php81.Dockerfile
+        container_name: ${APP_NAME:?err}-php
+        volumes:
+            - '${DOCUMENT_ROOT-./code/}:/var/www/html'
+        depends_on:
+            - database
+        environment:
+            APACHE_DOCUMENT_ROOT: ${APACHE_DOCUMENT_ROOT-/var/www/html}
+            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+            MYSQL_USER: ${MYSQL_USER}
+            MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+            MYSQL_DATABASE: ${MYSQL_DATABASE}
+    nginx:
+        image: nginx:latest
+        container_name: ${APP_NAME:?err}-nginx
+        ports:
+            - '${PORT-80}:80'
+        # - '443:443'
+        links:
+            - 'php'
+        volumes:
+            - '${DOCUMENT_ROOT-./code/}:/var/www/html'
+            - './config/nginx:/etc/nginx/conf.d'
+
+    database:
+        image: mariadb:10.3.9
+        container_name: ${APP_NAME:?err}-mariadb
+        restart: 'on-failure'
+        ports:
+            - "127.0.0.1:3312:3306"
+        environment:
+            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+            MYSQL_DATABASE: ${MYSQL_DATABASE}
+            MYSQL_USER: ${MYSQL_USER}
+            MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        volumes:
+            - ${MYSQL_DATA_DIR-./mysql/easybroker/data}:/var/lib/mysql
+            - ${MYSQL_LOG_DIR-./mysql/easybroker/logs}:/var/log/mysql

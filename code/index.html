@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Propiedades - EasyBroker</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.4.0/css/all.css">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <nav class="navbar navbar-light bg-primary">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <img src="https://files.readme.io/6ac26f0-small-logo-white.png" alt=""
+                        class="d-inline-block align-text-top" style="height: 40px; width: auto;">
+                </a>
+            </div>
+        </nav>
+        <div id="properties-meta" class="row d-flex justify-content-between my-3">
+            <div class="col-4" id="total-properties">
+                <span class="total-properties fs-4 fw-bold">Total: 0</span>
+            </div>
+            <div class="col-4 d-flex flex-row-reverse">
+                <select name="limit" id="per-page" class="form-select w-25" onchange="doSearch(1, 0)">
+                    <option value="20">20</option>
+                    <option value="30">30</option>
+                    <option value="50">50</option>
+
+                </select>
+            </div>
+        </div>
+        <div id="properties-container" class="row">
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            doSearch = function (page, limit) {
+
+                if (limit == 0) {
+                    var perPage = document.getElementById('per-page');
+                    limit = parseInt(perPage.value) > 0 ? parseInt(perPage.value) : 20;
+                }
+
+                $.get("routerApi.php?task=getProperties&page=" + page + "&limit=" + limit, function (data, status) {
+                    if (status === 'success') {
+                        var proContainer = document.getElementById("properties-container");
+                        proContainer.innerHTML = "";
+                        var propertiesJson = JSON.parse(data);
+                        var totalPropertiesHtml = document.getElementById("total-properties");
+                        console.log(propertiesJson)
+                        var totalProperties = propertiesJson.pagination.total > 0 ? propertiesJson.pagination.total : 0;
+                        totalPropertiesHtml.innerHTML = "";
+                        totalPropertiesHtml.insertAdjacentHTML('beforeend', '<span class="total-properties fs-4 fw-bold">Total: ' + totalProperties + '</span>')
+                        if (propertiesJson.content) {
+                            for (var i = 0; i <= propertiesJson.content.length - 1; i++) {
+                                var property = propertiesJson.content[i];
+                                cardItem = '';
+                                cardItem += '<div class="card my-3 p-0">'
+                                cardItem += '<div class="row g-0">'
+                                cardItem += '<div class="col-md-4">'
+                                cardItem += '  <img src="' + property.title_image_full + '" class="img-fluid rounded-start" alt="' + property.title + '">'
+                                cardItem += '</div>'
+                                cardItem += '<div class="col-md-8">'
+                                cardItem += '<div class="card-body">'
+                                cardItem += '<div class="row justify-content-between my-2">'
+                                cardItem += '<div class="col-6">'
+                                cardItem += '<h5 class="card-title">' + property.public_id + ' - ' + property.title + '</h5>'
+                                cardItem += '</div>'
+                                cardItem += ' <div class="col-4">'
+                                cardItem += '  <h5 class="card-type">' + property.property_type + '</h5>'
+                                cardItem += ' </div>'
+                                cardItem += '</div>'
+                                cardItem += '<h6 class="card-subtitle mb-2 text-muted"><i class="fa-duotone fa-location-dot mx-2"></i>' + property.location + '</h6>'
+                                cardItem += '<ul class="list-group list-group-horizontal">'
+                                cardItem += property.bedrooms > 0 ? '<li class="list-group-item border border-top-0 border-bottom-0 border-start-0 d-grid text-center"><span>' + Math.round(property.bedrooms) + '</span><span>Bed</span></li>' : '';
+                                cardItem += property.bathrooms > 0 ? '<li class="list-group-item border border-top-0 border-bottom-0 border-start-0 d-grid text-center"><span>' + Math.round(property.bathrooms) + '</span><span>Bath</span></li>' : '';
+                                cardItem += property.construction_size > 0 ? '<li class="list-group-item border border-top-0 border-bottom-0 border-start-0 d-grid text-center"><span>' + Math.round(property.construction_size) + '</span><span>Cons. m²</span></li>' : '';
+                                cardItem += property.lot_size > 0 ? '<li class="list-group-item border border-top-0 border-bottom-0 border-start-0 d-grid text-center"><span>' + Math.round(property.lot_size) + '</span><span>Lot</span></li>' : '';
+                                cardItem += property.parking_spaces > 0 ? '<li class="list-group-item border border-top-0 border-bottom-0 border-start-0 d-grid text-center"><span>' + Math.round(property.parking_spaces) + '</span><span>Parking</span></li>' : '';
+                                cardItem += '</ul>';
+                                cardItem += '</div>'
+                                cardItem += '</div>'
+                                cardItem += '</div>'
+                                cardItem += '</div>'
+                                proContainer.insertAdjacentHTML('beforeend', cardItem);
+                            }
+                        }
+
+                        proContainer.insertAdjacentHTML('beforeend', makePagination(propertiesJson));
+                    }
+                });
+            }
+            makePagination = function (rows) {
+
+                var total = rows.pagination.total;
+                var limit = rows.pagination.limit;
+
+                var currentPage = rows.pagination.page;
+                var ttlpages = Math.ceil(total / limit);
+
+                initPage = (currentPage >= (ttlpages - 3) ? (ttlpages - 3) : currentPage) - 2;
+                initPage = initPage <= 0 ? 1 : initPage;
+                lastpage = (ttlpages <= currentPage + 3) ? ttlpages : currentPage + 3;
+                paginationMls = ''
+                paginationMls += '<nav aria-label="Page navigation pagination-mls">';
+                paginationMls += '<ul class="pagination justify-content-center">';
+                paginationMls += '<li class="page-item">';
+                paginationMls += '<a class="page-link" onClick="doSearch(1, 0)" aria-label="Previous">';
+                paginationMls += '<span aria-hidden="true">&laquo;</span>';
+                paginationMls += '</a>';
+                paginationMls += '</li>';
+
+                if (currentPage > 1) {
+                    paginationMls += '<li class="page-item">';
+                    paginationMls += '<a class="page-link" href="#" aria-label="Previous">';
+                    paginationMls += '<span aria-hidden="true">...</span>';
+                    paginationMls += '</a>';
+                    paginationMls += '</li>';
+                }
+
+                for (var i = initPage; i <= lastpage; i++) {
+                    paginationMls += '<li class="page-item"><a class="page-link' + (currentPage == i ? ' active' : '') + '" onClick="doSearch(' + i + ', 0)">' + i + '</a></li>';
+                }
+
+                if (ttlpages > lastpage) {
+                    paginationMls += '<li class="page-item">';
+                    paginationMls += '<a class="page-link" href="#" aria-label="Previous">';
+                    paginationMls += '<span aria-hidden="true">...</span>';
+                    paginationMls += '</a>';
+                    paginationMls += '</li>';
+                }
+
+                paginationMls += '<li class="page-item">';
+                paginationMls += '<a class="page-link" onClick="doSearch(' + ttlpages + ', 0)" aria-label="Next">';
+                paginationMls += '<span aria-hidden="true">&raquo;</span>';
+                paginationMls += '</a>';
+                paginationMls += '</li>';
+                paginationMls += '</ul>';
+                paginationMls += '</nav>';
+                return paginationMls;
+            }
+
+
+
+            doSearch(1, 0);
+
+        })
+    </script>
+
+</body>
+
+</html>
